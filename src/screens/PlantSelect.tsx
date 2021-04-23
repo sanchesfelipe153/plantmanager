@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
 import { FlatList } from "react-native-gesture-handler"
+import { useNavigation } from "@react-navigation/core"
 import { EnvironmentButton } from "../components/EnvironmentButton"
 
 import { Header } from "../components/Header"
@@ -10,23 +11,11 @@ import api from "../services/api"
 
 import colors from "../styles/colors"
 import fonts from "../styles/fonts"
+import { PlantProps } from "../libs/storage"
 
 interface EnvironmentProps {
 	key: string
 	title: string
-}
-
-interface PlantProps {
-	id: string
-	name: string
-	about: string
-	water_tips: string
-	photo: string
-	environments: [string]
-	frequency: {
-		times: number
-		repeat_every: string
-	}
 }
 
 export const PlantSelect = () => {
@@ -38,7 +27,8 @@ export const PlantSelect = () => {
 
 	const [page, setPage] = useState(1)
 	const [loadingMore, setLoadingMore] = useState(false)
-	const [loadedAll, setLoadedAll] = useState(false)
+
+	const navigation = useNavigation()
 
 	async function fetchPlants() {
 		const { data } = await api.get(`plants?_sort=name&_order=asc&_page=${page}&_limit=8}`)
@@ -84,7 +74,6 @@ export const PlantSelect = () => {
 		const filtered = plants.filter((plant) => plant.environments.includes(environment))
 		setFilteredPlants(filtered)
 	}
-
 	const handleFetchMore = (distance: number) => {
 		if (distance < 1) {
 			return
@@ -93,6 +82,9 @@ export const PlantSelect = () => {
 		setLoadingMore(true)
 		setPage((oldValue) => oldValue + 1)
 		fetchPlants()
+	}
+	const handlePlantClick = (plant: PlantProps) => {
+		navigation.navigate("PlantSave", { plant })
 	}
 
 	if (loading) {
@@ -111,6 +103,7 @@ export const PlantSelect = () => {
 					horizontal
 					showsHorizontalScrollIndicator={false}
 					contentContainerStyle={styles.environmentList}
+					keyExtractor={(item) => String(item.key)}
 					data={environments}
 					renderItem={({ item }) => (
 						<EnvironmentButton
@@ -125,8 +118,9 @@ export const PlantSelect = () => {
 				<FlatList
 					numColumns={2}
 					showsVerticalScrollIndicator={false}
+					keyExtractor={(item) => String(item.id)}
 					data={filteredPlants}
-					renderItem={({ item }) => <PlantCardPrimary data={item} />}
+					renderItem={({ item }) => <PlantCardPrimary data={item} onPress={() => handlePlantClick(item)} />}
 					onEndReachedThreshold={0.1}
 					onEndReached={({ distanceFromEnd }) => handleFetchMore(distanceFromEnd)}
 					ListFooterComponent={() => (loadingMore ? <ActivityIndicator color={colors.green} /> : <></>)}
