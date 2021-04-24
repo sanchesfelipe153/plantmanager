@@ -1,21 +1,42 @@
 import React, { useEffect, useState } from "react"
-import { Image, StyleSheet, Text, View } from "react-native"
+import { Alert, Image, StyleSheet, Text, View } from "react-native"
 import { FlatList } from "react-native-gesture-handler"
 import { formatDistance } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 import { Header } from "../components/Header"
+import { loadPlants, PlantProps, removePlant } from "../libs/storage"
+import { PlantCardSecondary } from "../components/PlantCardSecondary"
+import { Loading } from "../components/Loading"
 
 import colors from "../styles/colors"
 import fonts from "../styles/fonts"
 import waterdrop from "../assets/waterdrop.png"
-import { loadPlants, PlantProps } from "../libs/storage"
-import { PlantCardSecondary } from "../components/PlantCardSecondary"
 
 export const MyPlants = () => {
 	const [myPlants, setMyPlants] = useState<PlantProps[]>([])
 	const [loading, setLoading] = useState(true)
 	const [nextWatered, setNextWatered] = useState<string>()
+
+	const handleRemove = (plant: PlantProps) => {
+		Alert.alert("Remover", `Deseja remover a ${plant.name}`, [
+			{
+				text: "Não 🙏",
+				style: "cancel",
+			},
+			{
+				text: "Sim 😢",
+				onPress: async () => {
+					try {
+						await removePlant(plant.id)
+						setMyPlants((oldData) => oldData.filter((item) => item.id !== plant.id))
+					} catch (error) {
+						Alert.alert("Não foi possível remover! 😢")
+					}
+				},
+			},
+		])
+	}
 
 	useEffect(() => {
 		const loadStoredData = async () => {
@@ -37,6 +58,10 @@ export const MyPlants = () => {
 		loadStoredData()
 	}, [])
 
+	if (loading) {
+		return <Loading />
+	}
+
 	return (
 		<View style={styles.container}>
 			<Header />
@@ -54,7 +79,9 @@ export const MyPlants = () => {
 					showsVerticalScrollIndicator={false}
 					keyExtractor={(item) => String(item.id)}
 					data={myPlants}
-					renderItem={({ item }) => <PlantCardSecondary data={item} />}
+					renderItem={({ item }) => (
+						<PlantCardSecondary data={item} handleRemove={() => handleRemove(item)} />
+					)}
 				/>
 			</View>
 		</View>
